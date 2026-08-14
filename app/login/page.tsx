@@ -4,8 +4,14 @@ import { getAppUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getAppUser();
   if (user) redirect("/");
-  return <LoginLanding />;
+
+  const { error } = await searchParams;
+  return <LoginLanding initialError={error} />;
 }

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   const errorUrl = new URL("/login", url.origin);
-  errorUrl.searchParams.set("error", "Google 로그인에 실패했어요. 다시 시도해 주세요.");
+  errorUrl.searchParams.set("error", "인증에 실패했어요. 다시 시도해주세요.");
   return NextResponse.redirect(errorUrl);
 }
 
