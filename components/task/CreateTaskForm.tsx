@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppChrome } from "@/components/common/AppChrome";
 import { categoryMap, type TaskSummary } from "./types";
 
@@ -12,7 +13,9 @@ function toInputDate(date: Date) {
 }
 
 export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
+  const router = useRouter();
   const defaults = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity -- New meetings should default relative to form-open time.
     const start = initial ? new Date(initial.startAt) : new Date(Date.now() + 2 * 60 * 60 * 1000);
     const deadline = initial?.deadlineAt
       ? new Date(initial.deadlineAt)
@@ -49,7 +52,8 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
       });
       const data = (await response.json()) as { id?: string; error?: string };
       if (!response.ok) throw new Error(data.error);
-      window.location.href = `/tasks/${initial?.id ?? data.id}`;
+      router.push(`/tasks/${initial?.id ?? data.id}`);
+      router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "저장하지 못했어요.");
       setBusy(false);
@@ -68,7 +72,6 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
               onChange={(event) => update("title", event.target.value)}
               placeholder="예: 오늘 10시 어몽어스"
               maxLength={60}
-              autoFocus
               required
             />
           </label>
@@ -102,22 +105,22 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
         <section className="form-section">
           <span className="form-kicker">몇 명이 필요해요?</span>
           <div className="number-fields">
-            <label className="field-label">
+            <div className="field-label">
               최소 인원
               <div className="stepper">
                 <button type="button" onClick={() => update("minParticipants", Math.max(1, form.minParticipants - 1))}>−</button>
                 <strong>{form.minParticipants}명</strong>
                 <button type="button" onClick={() => update("minParticipants", Math.min(form.maxParticipants, form.minParticipants + 1))}>＋</button>
               </div>
-            </label>
-            <label className="field-label">
+            </div>
+            <div className="field-label">
               최대 인원
               <div className="stepper">
                 <button type="button" onClick={() => update("maxParticipants", Math.max(form.minParticipants, form.maxParticipants - 1))}>−</button>
                 <strong>{form.maxParticipants}명</strong>
                 <button type="button" onClick={() => update("maxParticipants", Math.min(100, form.maxParticipants + 1))}>＋</button>
               </div>
-            </label>
+            </div>
           </div>
         </section>
 

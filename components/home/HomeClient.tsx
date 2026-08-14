@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
 import { TaskCard } from "@/components/task/TaskCard";
@@ -31,6 +32,7 @@ function groupKey(task: TaskSummary) {
 }
 
 export function HomeClient() {
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,12 +49,12 @@ export function HomeClient() {
     async function load() {
       const meResponse = await fetch("/api/me", { cache: "no-store" });
       if (meResponse.status === 401) {
-        window.location.href = "/login";
+        router.replace("/login");
         return;
       }
       const me = (await meResponse.json()) as { profile: Profile | null };
       if (!me.profile) {
-        window.location.href = "/onboarding";
+        router.replace("/onboarding");
         return;
       }
       setProfile(me.profile);
@@ -71,7 +73,7 @@ export function HomeClient() {
       setError(loadError instanceof Error ? loadError.message : "불러오지 못했어요.");
       setLoading(false);
     });
-  }, []);
+  }, [router]);
 
   const groups = useMemo(() => {
     const result: Record<string, TaskSummary[]> = {
@@ -208,13 +210,18 @@ export function HomeClient() {
       )}
 
       {leaveRequest && (
-        <div className="sheet-backdrop" role="presentation" onClick={() => setLeaveRequest(null)}>
+        <div className="sheet-backdrop">
+          <button
+            type="button"
+            className="sheet-dismiss"
+            aria-label="참여 변경 창 닫기"
+            onClick={() => setLeaveRequest(null)}
+          />
           <section
             className="bottom-sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby="leave-title"
-            onClick={(event) => event.stopPropagation()}
           >
             <div className="sheet-handle" />
             <h2 id="leave-title">참여를 변경할까요?</h2>

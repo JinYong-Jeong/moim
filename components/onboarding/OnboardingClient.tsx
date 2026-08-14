@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function OnboardingClient() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [inviteCode, setInviteCode] = useState("");
   const [nickname, setNickname] = useState("");
@@ -31,7 +33,8 @@ export function OnboardingClient() {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      window.location.href = "/";
+      router.replace("/");
+      router.refresh();
     } catch (finishError) {
       setError(finishError instanceof Error ? finishError.message : "가입하지 못했어요.");
       setBusy(false);
@@ -55,9 +58,8 @@ export function OnboardingClient() {
             <input
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
-              placeholder="예: FRIENDS2026"
+              placeholder="예: MOIM-7H3K9"
               autoCapitalize="characters"
-              autoFocus
             />
           </label>
           {error && <p className="field-error" role="alert">{error}</p>}
@@ -76,7 +78,6 @@ export function OnboardingClient() {
               minLength={2}
               maxLength={20}
               placeholder="2~20자"
-              autoFocus
             />
           </label>
           {error && <p className="field-error" role="alert">{error}</p>}

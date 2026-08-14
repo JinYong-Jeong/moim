@@ -16,7 +16,9 @@ export function SettingsClient({ email, displayName }: { email: string; displayN
         if (data.profile) setProfile(data.profile);
       })
       .catch(() => undefined);
-    if ("Notification" in window) setPermission(Notification.permission);
+    Promise.resolve().then(() => {
+      if ("Notification" in window) setPermission(Notification.permission);
+    });
   }, []);
 
   return (
@@ -33,7 +35,7 @@ export function SettingsClient({ email, displayName }: { email: string; displayN
             <span><strong>브라우저 알림</strong><small>모임 상세에서 각 모임별로 켤 수 있어요.</small></span>
             <em>{permission === "granted" ? "허용됨" : permission === "denied" ? "꺼짐" : "아직 안 켬"}</em>
           </div>
-          <a href="/signout-with-chatgpt?return_to=%2Flogin">
+          <a href="/auth/signout">
             <span><strong>로그아웃</strong><small>이 기기에서 계정을 나갑니다.</small></span>
             <em>→</em>
           </a>

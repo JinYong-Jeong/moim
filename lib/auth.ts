@@ -1,4 +1,4 @@
-import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export type AppUser = {
   id: string;
@@ -7,24 +7,21 @@ export type AppUser = {
 };
 
 export async function getAppUser(): Promise<AppUser | null> {
-  const user = await getChatGPTUser();
-  if (user) {
-    return {
-      id: user.userId,
-      email: user.email,
-      displayName: user.displayName,
-    };
-  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
 
-  if (process.env.NODE_ENV !== "production") {
-    return {
-      id: "preview-user",
-      email: "preview@friend-task.local",
-      displayName: "프리뷰 사용자",
-    };
-  }
+  const displayName =
+    data.user.user_metadata?.full_name ??
+    data.user.user_metadata?.name ??
+    data.user.email ??
+    "친구";
 
-  return null;
+  return {
+    id: data.user.id,
+    email: data.user.email ?? "",
+    displayName,
+  };
 }
 
 export function unauthorized() {

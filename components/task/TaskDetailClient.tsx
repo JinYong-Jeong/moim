@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
+import { createClient } from "@/lib/supabase/client";
 import { ParticipationSelector } from "./ParticipationSelector";
 import { TaskProgress } from "./TaskProgress";
 import {
@@ -14,26 +16,53 @@ import {
 } from "./types";
 
 export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerId: string }) {
+  const router = useRouter();
   const [task, setTask] = useState<TaskSummary | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/tasks/${taskId}`, { cache: "no-store" })
-      .then(async (response) => {
+    let active = true;
+    async function refresh() {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, { cache: "no-store" });
         const data = (await response.json()) as {
           task?: TaskSummary;
           participants?: Participant[];
           error?: string;
         };
         if (!response.ok) throw new Error(data.error);
+        if (!active) return;
         setTask(data.task ?? null);
         setParticipants(data.participants ?? []);
-      })
-      .catch((loadError) =>
-        setError(loadError instanceof Error ? loadError.message : "불러오지 못했어요."),
-      );
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : "불러오지 못했어요.");
+        }
+      }
+    }
+
+    void refresh();
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`task-detail-${taskId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_participants", filter: `task_id=eq.${taskId}` },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `id=eq.${taskId}` },
+        () => void refresh(),
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
   }, [taskId]);
 
   async function participate(status: Exclude<ParticipationStatus, null>) {
@@ -61,7 +90,7 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
 
   async function toggleWatch() {
     if (!task) return;
-    const next = !Boolean(task.watching);
+    const next = !task.watching;
     setBusy(true);
     setError("");
     try {
@@ -102,7 +131,8 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      window.location.href = "/";
+      router.push("/");
+      router.refresh();
     } catch (stateError) {
       setError(stateError instanceof Error ? stateError.message : "변경하지 못했어요.");
       setBusy(false);

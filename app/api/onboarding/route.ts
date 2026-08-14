@@ -1,5 +1,6 @@
-import { ensureDatabase, getD1, getInviteCode } from "@/db";
 import { getAppUser, unauthorized } from "@/lib/auth";
+import { databaseError } from "@/lib/task-data";
+import { createClient } from "@/lib/supabase/server";
 
 async function sha256(value: string) {
   const digest = await crypto.subtle.digest(
@@ -14,13 +15,12 @@ async function sha256(value: string) {
 export async function POST(request: Request) {
   const user = await getAppUser();
   if (!user) return unauthorized();
-  await ensureDatabase();
 
   const payload = (await request.json()) as {
     inviteCode?: string;
     nickname?: string;
   };
-  const inviteCode = payload.inviteCode?.trim() ?? "";
+  const inviteCode = payload.inviteCode?.trim().toUpperCase() ?? "";
   const nickname = payload.nickname?.trim() ?? "";
 
   if (nickname.length < 2 || nickname.length > 20) {
@@ -30,81 +30,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const [inputHash, expectedHash] = await Promise.all([
-    sha256(inviteCode),
-    sha256(getInviteCode()),
-  ]);
-  if (inputHash !== expectedHash) {
-    return Response.json(
-      { error: "초대 코드를 다시 확인해 주세요." },
-      { status: 400 },
-    );
-  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("complete_onboarding", {
+    p_code_hash: await sha256(inviteCode),
+    p_nickname: nickname,
+  });
 
-  const db = getD1();
-  const existing = await db
-    .prepare("SELECT id FROM profiles WHERE id = ?")
-    .bind(user.id)
-    .first();
-  if (existing) {
-    return Response.json({ ok: true });
-  }
-
-  const inviteId = expectedHash.slice(0, 24);
-  await db
-    .prepare(
-      `INSERT OR IGNORE INTO invite_codes
-       (id, code_hash, is_active, max_uses, use_count)
-       VALUES (?, ?, 1, 100, 0)`,
-    )
-    .bind(inviteId, expectedHash)
-    .run();
-
-  const code = await db
-    .prepare(
-      `SELECT id, is_active AS isActive, max_uses AS maxUses,
-              use_count AS useCount, expires_at AS expiresAt
-       FROM invite_codes WHERE code_hash = ?`,
-    )
-    .bind(expectedHash)
-    .first<{
-      id: string;
-      isActive: number;
-      maxUses: number | null;
-      useCount: number;
-      expiresAt: string | null;
-    }>();
-
-  const isExpired = code?.expiresAt
-    ? new Date(code.expiresAt).getTime() < Date.now()
-    : false;
-  if (
-    !code ||
-    !code.isActive ||
-    isExpired ||
-    (code.maxUses !== null && code.useCount >= code.maxUses)
-  ) {
-    return Response.json(
-      { error: "사용할 수 없는 초대 코드예요." },
-      { status: 400 },
-    );
-  }
-
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO profiles (id, email, nickname)
-         VALUES (?, ?, ?)`,
-      )
-      .bind(user.id, user.email, nickname),
-    db
-      .prepare(
-        `UPDATE invite_codes
-         SET use_count = use_count + 1
-         WHERE id = ?`,
-      )
-      .bind(code.id),
-  ]);
-
+  if (error) return databaseError(error, "초대 코드를 다시 확인해 주세요.");
   return Response.json({ ok: true }, { status: 201 });
 }
