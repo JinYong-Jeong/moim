@@ -1,0 +1,10 @@
+{
+  "name": "모임 — 오늘 뭐 할 사람?",
+  "short_name": "모임",
+  "description": "친구들과 할 일을 빠르게 모으는 비공개 웹앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f5ef",
+  "theme_color": "#174f38",
+  "lang": "ko"
+}
