@@ -35,9 +35,12 @@ export const categoryMap: Record<string, { emoji: string; label: string }> = {
   ETC: { emoji: "✨", label: "기타" },
 };
 
-export function getMeetStatus(task: TaskSummary) {
+export function getMeetStatus(task: TaskSummary, past = false) {
   if (task.status === "COMPLETED") {
     return { key: "COMPLETED", label: "완료", message: "즐거운 모임이었어요" };
+  }
+  if (past) {
+    return { key: "PAST", label: "지남", message: "모임 시간이 지났어요" };
   }
   if (task.joinedCount >= task.maxParticipants) {
     return { key: "FULL", label: "FULL", message: "모집 완료!" };

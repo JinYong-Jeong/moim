@@ -3,14 +3,15 @@ import { ParticipationSelector } from "./ParticipationSelector";
 import { TaskProgress } from "./TaskProgress";
 import {
   categoryMap,
-  formatMeetDate,
   type ParticipationStatus,
   type TaskSummary,
 } from "./types";
+import { formatMeetCountdown, hasDatePassed } from "@/lib/korea-time";
 
 export function TaskCard({
   task,
   onParticipation,
+  now,
   busy,
 }: {
   task: TaskSummary;
@@ -18,13 +19,19 @@ export function TaskCard({
     task: TaskSummary,
     status: Exclude<ParticipationStatus, null>,
   ) => void;
+  now: number;
   busy?: boolean;
 }) {
   const category = categoryMap[task.category] ?? categoryMap.ETC;
-  const date = formatMeetDate(task.startAt);
+  const startAt = new Date(task.startAt);
+  const currentTime = new Date(now);
+  const past = task.status === "OPEN" && hasDatePassed(startAt, currentTime);
+  const countdown = formatMeetCountdown(startAt, currentTime);
+  const canParticipate = task.status === "OPEN" && !past;
+  const closed = task.status !== "OPEN" || past;
 
   return (
-    <article className={`task-card${task.status !== "OPEN" ? " completed" : ""}`}>
+    <article className={`task-card${closed ? " completed" : ""}`}>
       <div className="task-card-topline">
         <span className="category-pill">
           <span aria-hidden="true">{category.emoji}</span> {category.label}
@@ -37,14 +44,17 @@ export function TaskCard({
             <h3>{task.title}</h3>
             <p>{task.creatorNickname}님이 열었어요</p>
           </div>
-          <div className="task-time">
-            <strong>{date.day}</strong>
-            <span>{date.time}</span>
+          <div
+            className={`task-time${countdown.past ? " past" : ""}`}
+            aria-label={`${countdown.amount} ${countdown.label}`}
+          >
+            <strong>{countdown.amount}</strong>
+            <span>{countdown.label}</span>
           </div>
         </div>
-        <TaskProgress task={task} />
+        <TaskProgress task={task} past={past} />
       </Link>
-      {task.status === "OPEN" && (
+      {canParticipate && (
         <div className="card-response">
           <div className="card-response-heading">
             <strong>참여 여부</strong>
@@ -58,8 +68,10 @@ export function TaskCard({
           />
         </div>
       )}
-      {task.status !== "OPEN" && (
-        <p className="closed-response">종료된 모임 · 참여 응답 마감</p>
+      {closed && (
+        <p className="closed-response">
+          {past ? "지난 모임 · 참여 응답 마감" : "종료된 모임 · 참여 응답 마감"}
+        </p>
       )}
     </article>
   );

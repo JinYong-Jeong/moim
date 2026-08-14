@@ -1,11 +1,14 @@
 import { getMeetStatus, type TaskSummary } from "./types";
 
-export function TaskProgress({ task }: { task: TaskSummary }) {
-  const state = getMeetStatus(task);
+export function TaskProgress({ task, past = false }: { task: TaskSummary; past?: boolean }) {
+  const state = getMeetStatus(task, past);
   const ratio = Math.min(100, (task.joinedCount / task.maxParticipants) * 100);
 
   return (
-    <div className="progress-wrap" aria-label={`${task.joinedCount}명 참여 중`}>
+    <div
+      className="progress-wrap"
+      aria-label={past ? `${task.joinedCount}명이 참여했던 모임` : `${task.joinedCount}명 참여 중`}
+    >
       <div className="progress-copy">
         <span className="progress-count">
           <strong>{task.joinedCount}</strong>

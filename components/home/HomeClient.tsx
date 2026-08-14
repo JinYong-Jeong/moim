@@ -9,7 +9,7 @@ import type {
   ParticipationStatus,
   TaskSummary,
 } from "@/components/task/types";
-import { koreaRelativeDay } from "@/lib/korea-time";
+import { hasDatePassed, koreaRelativeDay } from "@/lib/korea-time";
 
 type Profile = { id: string; nickname: string };
 type LeaveRequest = {
@@ -17,19 +17,25 @@ type LeaveRequest = {
   status: Exclude<ParticipationStatus, null>;
 } | null;
 
-function groupKey(task: TaskSummary) {
+function groupKey(task: TaskSummary, now: number) {
   if (task.status === "COMPLETED") return "완료";
-  return koreaRelativeDay(new Date(task.startAt)) ?? "예정";
+  const startAt = new Date(task.startAt);
+  const currentTime = new Date(now);
+  if (hasDatePassed(startAt, currentTime)) return "지난 모임";
+  return koreaRelativeDay(startAt, currentTime) ?? "예정";
 }
 
 export function HomeClient({
   profile,
   initialTasks,
+  initialNow,
 }: {
   profile: Profile;
   initialTasks: TaskSummary[];
+  initialNow: number;
 }) {
   const [tasks, setTasks] = useState<TaskSummary[]>(initialTasks);
+  const [now, setNow] = useState(initialNow);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [leaveRequest, setLeaveRequest] = useState<LeaveRequest>(null);
@@ -42,6 +48,11 @@ export function HomeClient({
 
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const groups = useMemo(() => {
     const result: Record<string, TaskSummary[]> = {
       "알림 켠 모임": [],
@@ -49,16 +60,21 @@ export function HomeClient({
       내일: [],
       예정: [],
       완료: [],
+      "지난 모임": [],
     };
     for (const task of tasks) {
-      if (task.status === "OPEN" && Boolean(task.watching)) {
+      const key = groupKey(task, now);
+      if (key !== "지난 모임" && task.status === "OPEN" && Boolean(task.watching)) {
         result["알림 켠 모임"].push(task);
       } else {
-        result[groupKey(task)].push(task);
+        result[key].push(task);
       }
     }
+    result["지난 모임"].sort(
+      (a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+    );
     return result;
-  }, [tasks]);
+  }, [now, tasks]);
 
   async function updateParticipation(
     task: TaskSummary,
@@ -164,6 +180,7 @@ export function HomeClient({
                   {items.map((task) => (
                     <TaskCard
                       task={task}
+                      now={now}
                       busy={busyId === task.id}
                       onParticipation={chooseParticipation}
                       key={task.id}

@@ -1,6 +1,8 @@
 export const KOREA_TIME_ZONE = "Asia/Seoul";
 
 const KOREA_OFFSET = "+09:00";
+const MINUTE_IN_MS = 60 * 1000;
+const HOUR_IN_MS = 60 * MINUTE_IN_MS;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const DATE_TIME_INPUT_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
@@ -29,6 +31,10 @@ function parts(date: Date, formatter: Intl.DateTimeFormat) {
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, part.value]),
   );
+}
+
+export function currentTimestamp() {
+  return Date.now();
 }
 
 export function toKoreaDateTimeInput(date: Date) {
@@ -62,4 +68,34 @@ export function koreaRelativeDay(date: Date, now = new Date()) {
   if (key === koreaDateKey(now)) return "오늘";
   if (key === koreaDateKey(new Date(now.getTime() + DAY_IN_MS))) return "내일";
   return null;
+}
+
+export function hasDatePassed(date: Date, now = new Date()) {
+  return date.getTime() <= now.getTime();
+}
+
+export function formatMeetCountdown(date: Date, now = new Date()) {
+  const difference = date.getTime() - now.getTime();
+  const absolute = Math.abs(difference);
+  const past = difference <= 0;
+
+  if (absolute < MINUTE_IN_MS) {
+    return past
+      ? { amount: "방금", label: "지남", past }
+      : { amount: "곧", label: "시작", past };
+  }
+
+  const unit =
+    absolute < HOUR_IN_MS
+      ? { size: MINUTE_IN_MS, label: "분" }
+      : absolute < DAY_IN_MS
+        ? { size: HOUR_IN_MS, label: "시간" }
+        : { size: DAY_IN_MS, label: "일" };
+  const value = Math.max(1, Math.floor(absolute / unit.size));
+
+  return {
+    amount: `${value}${unit.label}`,
+    label: past ? "지남" : "남음",
+    past,
+  };
 }

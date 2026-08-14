@@ -383,6 +383,15 @@ a {
   font-weight: 850;
 }
 
+.task-time.past {
+  color: var(--muted);
+  background: #f0f1ee;
+}
+
+.task-time.past span {
+  color: var(--muted);
+}
+
 .progress-wrap {
   margin-top: 16px;
 }
@@ -432,6 +441,11 @@ a {
 }
 
 .meet-status-completed {
+  color: #5f655f;
+  background: #eceeeb;
+}
+
+.meet-status-past {
   color: #5f655f;
   background: #eceeeb;
 }
