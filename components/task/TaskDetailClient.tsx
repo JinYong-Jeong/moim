@@ -130,10 +130,6 @@ export function TaskDetailClient({
     setError("");
     setTask((current) => ({ ...current, watching: next }));
     try {
-      let notificationDenied = false;
-      if (next && "Notification" in window && Notification.permission === "default") {
-        notificationDenied = (await Notification.requestPermission()) === "denied";
-      }
       const response = await fetch(`/api/tasks/${task.id}/watch`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -141,6 +137,11 @@ export function TaskDetailClient({
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
+
+      let notificationDenied = false;
+      if (next && "Notification" in window && Notification.permission === "default") {
+        notificationDenied = (await Notification.requestPermission()) === "denied";
+      }
       if (notificationDenied) {
         setError("앱 안에서는 계속 볼 수 있지만 브라우저 알림은 꺼져 있어요.");
       } else if (next && "Notification" in window && Notification.permission === "granted") {

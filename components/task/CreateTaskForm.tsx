@@ -36,33 +36,28 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
     [initial?.id],
   );
 
-  const [form, setForm] = useState(() => defaults);
-  const [draftReady, setDraftReady] = useState(false);
+  const [form, setForm] = useState(() => {
+    if (typeof window === "undefined") return defaults;
+    try {
+      const saved = window.sessionStorage.getItem(draftKey);
+      return saved
+        ? { ...defaults, ...(JSON.parse(saved) as Partial<typeof defaults>) }
+        : defaults;
+    } catch {
+      window.sessionStorage.removeItem(draftKey);
+      return defaults;
+    }
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     try {
-      const saved = window.sessionStorage.getItem(draftKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<typeof defaults>;
-        setForm((current) => ({ ...current, ...parsed }));
-      }
-    } catch {
-      window.sessionStorage.removeItem(draftKey);
-    } finally {
-      setDraftReady(true);
-    }
-  }, [draftKey]);
-
-  useEffect(() => {
-    if (!draftReady) return;
-    try {
       window.sessionStorage.setItem(draftKey, JSON.stringify(form));
     } catch {
       // Private browsing can disable session storage; the form still works in memory.
     }
-  }, [draftKey, draftReady, form]);
+  }, [draftKey, form]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => {
