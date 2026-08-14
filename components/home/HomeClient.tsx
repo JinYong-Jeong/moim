@@ -18,10 +18,10 @@ type LeaveRequest = {
 } | null;
 
 function groupKey(task: TaskSummary, now: number) {
-  if (task.status === "COMPLETED") return "완료";
   const startAt = new Date(task.startAt);
   const currentTime = new Date(now);
   if (hasDatePassed(startAt, currentTime)) return "지난 모임";
+  if (task.status === "COMPLETED") return "완료";
   return koreaRelativeDay(startAt, currentTime) ?? "예정";
 }
 

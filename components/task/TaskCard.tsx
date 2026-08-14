@@ -25,7 +25,7 @@ export function TaskCard({
   const category = categoryMap[task.category] ?? categoryMap.ETC;
   const startAt = new Date(task.startAt);
   const currentTime = new Date(now);
-  const past = task.status === "OPEN" && hasDatePassed(startAt, currentTime);
+  const past = hasDatePassed(startAt, currentTime);
   const countdown = formatMeetCountdown(startAt, currentTime);
   const canParticipate = task.status === "OPEN" && !past;
   const closed = task.status !== "OPEN" || past;
