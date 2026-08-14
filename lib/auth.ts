@@ -8,19 +8,21 @@ export type AppUser = {
 
 export async function getAppUser(): Promise<AppUser | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return null;
+  const { data, error } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (error || !userId) return null;
 
-  const displayName =
-    data.user.user_metadata?.full_name ??
-    data.user.user_metadata?.name ??
-    data.user.email ??
-    "친구";
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email, nickname")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) return null;
 
   return {
-    id: data.user.id,
-    email: data.user.email ?? "",
-    displayName,
+    id: userId,
+    email: profile.email,
+    displayName: profile.nickname,
   };
 }
 

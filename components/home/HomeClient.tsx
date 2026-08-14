@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
 import { TaskCard } from "@/components/task/TaskCard";
@@ -10,7 +9,7 @@ import type {
   TaskSummary,
 } from "@/components/task/types";
 
-type Profile = { id: string; nickname: string; email: string };
+type Profile = { id: string; nickname: string };
 type LeaveRequest = {
   task: TaskSummary;
   status: Exclude<ParticipationStatus, null>;
@@ -31,11 +30,14 @@ function groupKey(task: TaskSummary) {
   return "예정";
 }
 
-export function HomeClient() {
-  const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [tasks, setTasks] = useState<TaskSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+export function HomeClient({
+  profile,
+  initialTasks,
+}: {
+  profile: Profile;
+  initialTasks: TaskSummary[];
+}) {
+  const [tasks, setTasks] = useState<TaskSummary[]>(initialTasks);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [leaveRequest, setLeaveRequest] = useState<LeaveRequest>(null);
@@ -46,34 +48,7 @@ export function HomeClient() {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     }
 
-    async function load() {
-      const meResponse = await fetch("/api/me", { cache: "no-store" });
-      if (meResponse.status === 401) {
-        router.replace("/login");
-        return;
-      }
-      const me = (await meResponse.json()) as { profile: Profile | null };
-      if (!me.profile) {
-        router.replace("/onboarding");
-        return;
-      }
-      setProfile(me.profile);
-
-      const taskResponse = await fetch("/api/tasks", { cache: "no-store" });
-      const data = (await taskResponse.json()) as {
-        tasks?: TaskSummary[];
-        error?: string;
-      };
-      if (!taskResponse.ok) throw new Error(data.error);
-      setTasks(data.tasks ?? []);
-      setLoading(false);
-    }
-
-    load().catch((loadError) => {
-      setError(loadError instanceof Error ? loadError.message : "불러오지 못했어요.");
-      setLoading(false);
-    });
-  }, [router]);
+  }, []);
 
   const groups = useMemo(() => {
     const result: Record<string, TaskSummary[]> = {
@@ -163,7 +138,7 @@ export function HomeClient() {
     <AppChrome>
       <div className="home-hero">
         <div>
-          <p>{profile ? `${profile.nickname}님,` : "반가워요,"}</p>
+          <p>{profile.nickname}님</p>
           <h1>오늘 뭐 할까요?</h1>
         </div>
         <Link href="/tasks/new" className="hero-create">
@@ -173,16 +148,11 @@ export function HomeClient() {
 
       {error && <div className="inline-alert" role="alert">{error}</div>}
 
-      {loading ? (
-        <div className="task-loading" aria-label="모임 불러오는 중">
-          <span /><span />
-        </div>
-      ) : tasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <section className="empty-state">
-          <div aria-hidden="true">👋</div>
           <h2>첫 모임을 열어볼까요?</h2>
           <p>제목과 시간, 인원만 정하면 끝이에요.</p>
-          <Link href="/tasks/new" className="primary-button">30초 만에 만들기</Link>
+          <Link href="/tasks/new" className="primary-button">모임 만들기</Link>
         </section>
       ) : (
         <div className="task-groups">

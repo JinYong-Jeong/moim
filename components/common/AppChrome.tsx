@@ -29,7 +29,7 @@ export function AppChrome({
             </Link>
           ) : (
             <Link href="/" className="brand-mark" aria-label="모임 홈">
-              모임<span>.</span>
+              모임
             </Link>
           )}
           {title && (
@@ -40,7 +40,7 @@ export function AppChrome({
           )}
           {!backHref && (
             <Link href="/settings" className="profile-dot" aria-label="내 설정">
-              나
+              내
             </Link>
           )}
         </div>

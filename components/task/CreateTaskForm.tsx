@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppChrome } from "@/components/common/AppChrome";
 import { categoryMap, type TaskSummary } from "./types";
@@ -31,13 +31,49 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
       joinUrl: initial?.joinUrl ?? "",
     };
   }, [initial]);
+  const draftKey = useMemo(
+    () => `moim:task-draft:v1:${initial?.id ?? "new"}`,
+    [initial?.id],
+  );
 
-  const [form, setForm] = useState(defaults);
+  const [form, setForm] = useState(() => defaults);
+  const [draftReady, setDraftReady] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<typeof defaults>;
+        setForm((current) => ({ ...current, ...parsed }));
+      }
+    } catch {
+      window.sessionStorage.removeItem(draftKey);
+    } finally {
+      setDraftReady(true);
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    try {
+      window.sessionStorage.setItem(draftKey, JSON.stringify(form));
+    } catch {
+      // Private browsing can disable session storage; the form still works in memory.
+    }
+  }, [draftKey, draftReady, form]);
+
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      try {
+        window.sessionStorage.setItem(draftKey, JSON.stringify(next));
+      } catch {
+        // Keep the in-memory update when storage is unavailable.
+      }
+      return next;
+    });
   }
 
   async function submit(event: FormEvent) {
@@ -52,8 +88,12 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
       });
       const data = (await response.json()) as { id?: string; error?: string };
       if (!response.ok) throw new Error(data.error);
+      try {
+        window.sessionStorage.removeItem(draftKey);
+      } catch {
+        // The saved draft is best-effort only.
+      }
       router.push(`/tasks/${initial?.id ?? data.id}`);
-      router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "저장하지 못했어요.");
       setBusy(false);
@@ -61,7 +101,7 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
   }
 
   return (
-    <AppChrome title={initial ? "모임 수정" : "새 모임"} eyebrow="30초면 충분해요" backHref={initial ? `/tasks/${initial.id}` : "/"} hideNav>
+    <AppChrome title={initial ? "모임 수정" : "새 모임"} backHref={initial ? `/tasks/${initial.id}` : "/"} hideNav>
       <form className="task-form" onSubmit={submit}>
         <section className="form-section form-section-first">
           <span className="form-kicker">어떤 모임인가요?</span>

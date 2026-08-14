@@ -3,7 +3,6 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 type LoginLandingProps = {
   initialError?: string;
@@ -11,137 +10,88 @@ type LoginLandingProps = {
 
 export function LoginLanding({ initialError = "" }: LoginLandingProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<"signup" | "login">("signup");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
-  const [notice, setNotice] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
-    setNotice("");
 
     try {
-      const supabase = createClient();
-
-      if (mode === "login") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (signInError) throw signInError;
-        router.replace("/");
-        router.refresh();
-        return;
-      }
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      const response = await fetch("/api/auth/access", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, pin, inviteCode }),
       });
-      if (signUpError) throw signUpError;
-
-      if (data.session) {
-        router.replace("/");
-        router.refresh();
-        return;
-      }
-
-      setNotice("확인 메일을 보냈어요. 메일 속 링크를 누르면 가입이 완료돼요.");
-      setBusy(false);
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error);
+      router.replace("/");
     } catch (authError) {
-      const message = authError instanceof Error ? authError.message : "";
-      setError(toFriendlyError(message, mode));
+      setError(authError instanceof Error ? authError.message : "들어가지 못했어요.");
       setBusy(false);
     }
   }
 
-  function changeMode(nextMode: "signup" | "login") {
-    setMode(nextMode);
-    setError("");
-    setNotice("");
-  }
-
   return (
     <main className="login-page">
-      <div className="login-orbit" aria-hidden="true">
-        <span>🎮</span><span>🍜</span><span>🏃</span><span>📚</span>
-        <strong>같이?</strong>
-      </div>
       <div className="login-copy">
-        <span className="brand-kicker">FRIEND TASK</span>
-        <h1>오늘 뭐 할 사람?</h1>
-        <p>
-          단톡방에서 묻고 또 묻지 말고,
-          <br />한 번에 모여요.
-        </p>
+        <span className="brand-kicker">모임</span>
+        <h1>친구들과<br />가볍게 약속 잡기</h1>
+        <p>이름과 4자리 PIN만 기억하면 돼요.</p>
       </div>
 
       <form className="login-form" onSubmit={submit}>
         <label className="login-field">
-          <span>이메일</span>
+          <span>이름</span>
           <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="friend@example.com"
-            autoComplete="email"
-            inputMode="email"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="친구들이 아는 이름"
+            autoComplete="username"
+            maxLength={20}
             required
           />
         </label>
         <label className="login-field">
-          <span>비밀번호</span>
+          <span>PIN</span>
           <input
             type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="8자 이상"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            minLength={8}
+            value={pin}
+            onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 4))}
+            placeholder="숫자 4자리"
+            autoComplete="current-password"
+            inputMode="numeric"
+            pattern="[0-9]{4}"
+            maxLength={4}
             required
+          />
+        </label>
+        <label className="login-field">
+          <span>초대코드</span>
+          <input
+            value={inviteCode}
+            onChange={(event) =>
+              setInviteCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))
+            }
+            placeholder="처음 한 번만"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={6}
           />
         </label>
 
         {error && <p className="field-error login-error" role="alert">{error}</p>}
-        {notice && <p className="login-success" role="status">{notice}</p>}
 
         <button className="primary-button login-button" type="submit" disabled={busy}>
-          {busy ? "처리 중..." : mode === "signup" ? "가입하고 시작하기" : "로그인"}
+          {busy ? "확인 중…" : "들어가기"}
         </button>
       </form>
-
-      <button
-        className="login-mode-button"
-        type="button"
-        onClick={() => changeMode(mode === "signup" ? "login" : "signup")}
-      >
-        {mode === "signup" ? "이미 가입했어요 · 로그인" : "처음이에요 · 가입"}
-      </button>
-      <p className="login-note">초대받은 친구만 들어올 수 있어요.</p>
+      <p className="login-note">초대코드는 처음 들어올 때만 필요합니다.</p>
     </main>
   );
-}
-
-function toFriendlyError(message: string, mode: "signup" | "login") {
-  const normalized = message.toLowerCase();
-  if (normalized.includes("already registered") || normalized.includes("already been registered")) {
-    return "이미 가입한 이메일이에요. 아래에서 로그인으로 바꿔주세요.";
-  }
-  if (normalized.includes("invalid login credentials")) {
-    return "이메일 또는 비밀번호를 확인해주세요.";
-  }
-  if (normalized.includes("password")) {
-    return "비밀번호는 8자 이상으로 입력해주세요.";
-  }
-  if (normalized.includes("rate limit")) {
-    return "요청이 너무 많아요. 잠시 뒤 다시 시도해주세요.";
-  }
-  return mode === "signup" ? "가입하지 못했어요. 잠시 뒤 다시 시도해주세요." : "로그인하지 못했어요. 다시 확인해주세요.";
 }

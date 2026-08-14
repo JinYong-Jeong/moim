@@ -15,10 +15,22 @@ import {
   type TaskSummary,
 } from "./types";
 
-export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerId: string }) {
+export function TaskDetailClient({
+  taskId,
+  viewerId,
+  viewerName,
+  initialTask,
+  initialParticipants,
+}: {
+  taskId: string;
+  viewerId: string;
+  viewerName: string;
+  initialTask: TaskSummary;
+  initialParticipants: Participant[];
+}) {
   const router = useRouter();
-  const [task, setTask] = useState<TaskSummary | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [task, setTask] = useState<TaskSummary>(initialTask);
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipants);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,7 +46,7 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
         };
         if (!response.ok) throw new Error(data.error);
         if (!active) return;
-        setTask(data.task ?? null);
+        if (data.task) setTask(data.task);
         setParticipants(data.participants ?? []);
       } catch (loadError) {
         if (active) {
@@ -43,7 +55,6 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
       }
     }
 
-    void refresh();
     const supabase = createClient();
     const channel = supabase
       .channel(`task-detail-${taskId}`)
@@ -66,9 +77,31 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
   }, [taskId]);
 
   async function participate(status: Exclude<ParticipationStatus, null>) {
-    if (!task || task.myStatus === status) return;
+    if (task.myStatus === status) return;
+    const previousTask = task;
+    const previousParticipants = participants;
+    const joinedDelta =
+      task.myStatus === "JOINED" && status !== "JOINED"
+        ? -1
+        : task.myStatus !== "JOINED" && status === "JOINED"
+          ? 1
+          : 0;
     setBusy(true);
     setError("");
+    setTask((current) => ({
+      ...current,
+      myStatus: status,
+      joinedCount: Math.max(0, current.joinedCount + joinedDelta),
+    }));
+    setParticipants((current) => {
+      const exists = current.some((person) => person.id === viewerId);
+      if (exists) {
+        return current.map((person) =>
+          person.id === viewerId ? { ...person, status } : person,
+        );
+      }
+      return [...current, { id: viewerId, nickname: viewerName, status }];
+    });
     try {
       const response = await fetch(`/api/tasks/${task.id}/participation`, {
         method: "POST",
@@ -77,11 +110,13 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
       });
       const data = (await response.json()) as { joinedCount?: number; error?: string };
       if (!response.ok) throw new Error(data.error);
-      setTask({ ...task, myStatus: status, joinedCount: data.joinedCount ?? task.joinedCount });
-      const refreshed = await fetch(`/api/tasks/${task.id}`, { cache: "no-store" });
-      const detail = (await refreshed.json()) as { participants: Participant[] };
-      setParticipants(detail.participants ?? []);
+      setTask((current) => ({
+        ...current,
+        joinedCount: data.joinedCount ?? current.joinedCount,
+      }));
     } catch (participateError) {
+      setTask(previousTask);
+      setParticipants(previousParticipants);
       setError(participateError instanceof Error ? participateError.message : "변경하지 못했어요.");
     } finally {
       setBusy(false);
@@ -89,10 +124,11 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
   }
 
   async function toggleWatch() {
-    if (!task) return;
     const next = !task.watching;
+    const previousTask = task;
     setBusy(true);
     setError("");
+    setTask((current) => ({ ...current, watching: next }));
     try {
       let notificationDenied = false;
       if (next && "Notification" in window && Notification.permission === "default") {
@@ -105,13 +141,22 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      setTask({ ...task, watching: next });
       if (notificationDenied) {
         setError("앱 안에서는 계속 볼 수 있지만 브라우저 알림은 꺼져 있어요.");
       } else if (next && "Notification" in window && Notification.permission === "granted") {
-        new Notification("모임 알림을 켰어요", { body: `${task.title} 소식을 알려드릴게요.` });
+        try {
+          if (!("serviceWorker" in navigator)) throw new Error("unsupported");
+          const registration = await navigator.serviceWorker.register("/sw.js");
+          await registration.showNotification("모임 알림을 켰어요", {
+            body: `${task.title} 소식을 알려드릴게요.`,
+            tag: `watch-${task.id}`,
+          });
+        } catch {
+          setError("모임 알림은 켰지만, 이 브라우저에서는 알림 창을 띄울 수 없어요.");
+        }
       }
     } catch (watchError) {
+      setTask(previousTask);
       setError(watchError instanceof Error ? watchError.message : "알림을 변경하지 못했어요.");
     } finally {
       setBusy(false);
@@ -119,7 +164,6 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
   }
 
   async function changeTaskState(action: "CANCELLED" | "COMPLETED") {
-    if (!task) return;
     const message = action === "CANCELLED" ? "이 모임을 취소할까요?" : "모임을 완료할까요?";
     if (!window.confirm(message)) return;
     setBusy(true);
@@ -132,19 +176,10 @@ export function TaskDetailClient({ taskId, viewerId }: { taskId: string; viewerI
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
       router.push("/");
-      router.refresh();
     } catch (stateError) {
       setError(stateError instanceof Error ? stateError.message : "변경하지 못했어요.");
       setBusy(false);
     }
-  }
-
-  if (!task) {
-    return (
-      <AppChrome title="모임" backHref="/">
-        {error ? <div className="inline-alert detail-alert">{error}</div> : <div className="detail-loading"><span /></div>}
-      </AppChrome>
-    );
   }
 
   const date = formatMeetDate(task.startAt);
