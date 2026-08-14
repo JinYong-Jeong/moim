@@ -118,7 +118,7 @@ a {
 }
 
 .header-share {
-  min-width: 52px;
+  min-width: 60px;
   height: 38px;
   padding: 0 13px;
   border: 1px solid var(--line);
@@ -127,6 +127,7 @@ a {
   background: white;
   font-size: 12px;
   font-weight: 750;
+  white-space: nowrap;
   cursor: pointer;
 }
 
