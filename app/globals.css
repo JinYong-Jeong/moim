@@ -659,9 +659,10 @@ a {
 
 .login-orbit {
   position: relative;
-  width: min(78vw, 360px);
+  width: min(52vw, 220px);
+  flex: 0 0 auto;
   aspect-ratio: 1;
-  margin: 2vh auto 0;
+  margin: 0 auto 18px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -677,27 +678,27 @@ a {
 }
 
 .login-orbit strong {
-  width: 108px;
-  height: 108px;
+  width: 78px;
+  height: 78px;
   display: grid;
   place-items: center;
-  border-radius: 34px;
+  border-radius: 25px;
   color: var(--ink);
   background: var(--lime);
-  font-size: 25px;
+  font-size: 21px;
   font-weight: 900;
   transform: rotate(-5deg);
 }
 
 .login-orbit > span {
   position: absolute;
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.13);
-  font-size: 24px;
+  font-size: 20px;
   backdrop-filter: blur(10px);
 }
 
@@ -707,7 +708,7 @@ a {
 .login-orbit > span:nth-child(4) { bottom: 25%; left: -2%; transform: rotate(6deg); }
 
 .login-copy {
-  margin-top: auto;
+  margin-top: 0;
 }
 
 .brand-kicker,
@@ -724,7 +725,7 @@ a {
 
 .login-copy h1 {
   margin: 9px 0 10px;
-  font-size: clamp(38px, 11vw, 52px);
+  font-size: clamp(34px, 10vw, 46px);
   line-height: 1;
   letter-spacing: -0.065em;
 }
@@ -743,7 +744,8 @@ a {
 
 .login-field {
   display: grid;
-  grid-template-columns: 76px 1fr;
+  grid-template-columns: 68px 1fr;
+  column-gap: 8px;
   align-items: center;
   min-height: 54px;
   padding: 0 14px;
