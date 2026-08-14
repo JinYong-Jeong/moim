@@ -112,6 +112,30 @@ a {
   font-size: 13px;
 }
 
+.header-action {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.header-share {
+  min-width: 52px;
+  height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--primary);
+  background: white;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.header-share.done {
+  color: white;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
 .back-button {
   font-size: 20px;
 }
@@ -1035,6 +1059,21 @@ a {
 .detail-page {
   display: grid;
   gap: 13px;
+}
+
+.share-status:empty {
+  display: none;
+}
+
+.share-status {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #cbdccf;
+  border-radius: 11px;
+  color: var(--primary);
+  background: #f3f8f4;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .detail-hero-card,

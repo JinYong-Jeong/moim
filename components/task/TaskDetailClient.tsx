@@ -15,6 +15,28 @@ import {
   type TaskSummary,
 } from "./types";
 
+async function copyShareText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Some in-app browsers expose Clipboard API but block write access.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("copy failed");
+}
+
 export function TaskDetailClient({
   taskId,
   viewerId,
@@ -33,6 +55,7 @@ export function TaskDetailClient({
   const [participants, setParticipants] = useState<Participant[]>(initialParticipants);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
 
   useEffect(() => {
     let active = true;
@@ -186,6 +209,36 @@ export function TaskDetailClient({
     }
   }
 
+  async function shareTask() {
+    const shareUrl = `${window.location.origin}/tasks/${task.id}`;
+    const date = formatMeetDate(task.startAt);
+    const message = `${task.title}\n${date.day} ${date.time}\n링크를 열고 로그인하면 바로 모임을 볼 수 있어요.`;
+
+    setError("");
+    setShareState("idle");
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `모임 · ${task.title}`,
+          text: message,
+          url: shareUrl,
+        });
+        setShareState("shared");
+        return;
+      } catch (shareError) {
+        if (shareError instanceof DOMException && shareError.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await copyShareText(`${message}\n${shareUrl}`);
+      setShareState("copied");
+    } catch {
+      setError("공유 링크를 복사하지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+    }
+  }
+
   const date = formatMeetDate(task.startAt);
   const category = categoryMap[task.category] ?? categoryMap.ETC;
   const grouped = {
@@ -196,8 +249,29 @@ export function TaskDetailClient({
   const isCreator = task.creatorId === viewerId;
 
   return (
-    <AppChrome title="모임 상세" eyebrow={`${category.emoji} ${category.label}`} backHref="/">
+    <AppChrome
+      title="모임 상세"
+      eyebrow={`${category.emoji} ${category.label}`}
+      backHref="/"
+      action={
+        <button
+          className={`header-share${shareState !== "idle" ? " done" : ""}`}
+          type="button"
+          onClick={shareTask}
+          aria-label="이 모임 공유하기"
+        >
+          {shareState === "copied" ? "복사됨" : shareState === "shared" ? "공유됨" : "공유"}
+        </button>
+      }
+    >
       <div className="detail-page">
+        <div className="share-status" role="status" aria-live="polite">
+          {shareState === "copied"
+            ? "링크를 복사했어요. 카톡에 붙여넣으세요."
+            : shareState === "shared"
+              ? "공유했어요."
+              : ""}
+        </div>
         <section className="detail-hero-card">
           <div className="detail-date">
             <strong>{date.day}</strong>

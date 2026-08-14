@@ -6,9 +6,13 @@ import { useRouter } from "next/navigation";
 
 type LoginLandingProps = {
   initialError?: string;
+  nextPath?: string;
 };
 
-export function LoginLanding({ initialError = "" }: LoginLandingProps) {
+export function LoginLanding({
+  initialError = "",
+  nextPath = "/",
+}: LoginLandingProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
@@ -29,7 +33,7 @@ export function LoginLanding({ initialError = "" }: LoginLandingProps) {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      router.replace("/");
+      router.replace(nextPath);
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "들어가지 못했어요.");
       setBusy(false);
@@ -91,7 +95,11 @@ export function LoginLanding({ initialError = "" }: LoginLandingProps) {
           {busy ? "확인 중…" : "들어가기"}
         </button>
       </form>
-      <p className="login-note">초대코드는 처음 들어올 때만 필요합니다.</p>
+      <p className="login-note">
+        {nextPath === "/"
+          ? "초대코드는 처음 들어올 때만 필요합니다."
+          : "로그인하면 공유받은 모임으로 바로 이동합니다."}
+      </p>
     </main>
   );
 }
