@@ -705,6 +705,43 @@ a {
   background: var(--lime-soft);
 }
 
+.reason-input {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+.reason-input span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reason-input input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
+  background: #fafaf8;
+  font-size: 13px;
+}
+
+.reason-input input:focus {
+  border-color: var(--primary);
+  background: white;
+}
+
+.reason-input small {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .sheet-actions,
 .onboarding-actions {
   margin-top: 22px;

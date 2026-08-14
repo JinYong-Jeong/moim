@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
+import { ParticipationChangeSheet } from "@/components/task/ParticipationChangeSheet";
 import { TaskCard } from "@/components/task/TaskCard";
 import type {
   ParticipationStatus,
@@ -15,8 +16,6 @@ type LeaveRequest = {
   task: TaskSummary;
   status: Exclude<ParticipationStatus, null>;
 } | null;
-
-const leaveReasons = ["일정이 생겼어요", "다른 약속이 있어요", "인원이 부족해 보여요"];
 
 function groupKey(task: TaskSummary) {
   if (task.status === "COMPLETED") return "완료";
@@ -127,6 +126,11 @@ export function HomeClient({
     void updateParticipation(task, status);
   }
 
+  function closeLeaveSheet() {
+    setLeaveRequest(null);
+    setLeaveReason("");
+  }
+
   return (
     <AppChrome>
       <div className="home-hero">
@@ -173,48 +177,19 @@ export function HomeClient({
       )}
 
       {leaveRequest && (
-        <div className="sheet-backdrop">
-          <button
-            type="button"
-            className="sheet-dismiss"
-            aria-label="참여 변경 창 닫기"
-            onClick={() => setLeaveRequest(null)}
-          />
-          <section
-            className="bottom-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="leave-title"
-          >
-            <div className="sheet-handle" />
-            <h2 id="leave-title">참여를 변경할까요?</h2>
-            <p>이유는 선택이에요. 친구들이 계획할 때 도움이 돼요.</p>
-            <div className="reason-chips">
-              {leaveReasons.map((reason) => (
-                <button
-                  type="button"
-                  className={leaveReason === reason ? "selected" : ""}
-                  onClick={() => setLeaveReason(reason)}
-                  key={reason}
-                >
-                  {reason}
-                </button>
-              ))}
-            </div>
-            <div className="sheet-actions">
-              <button type="button" className="secondary-button" onClick={() => setLeaveRequest(null)}>
-                그대로 참여
-              </button>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => updateParticipation(leaveRequest.task, leaveRequest.status, leaveReason)}
-              >
-                변경하기
-              </button>
-            </div>
-          </section>
-        </div>
+        <ParticipationChangeSheet
+          reason={leaveReason}
+          onReasonChange={setLeaveReason}
+          onCancel={closeLeaveSheet}
+          onConfirm={() =>
+            updateParticipation(
+              leaveRequest.task,
+              leaveRequest.status,
+              leaveReason,
+            )
+          }
+          busy={busyId === leaveRequest.task.id}
+        />
       )}
     </AppChrome>
   );

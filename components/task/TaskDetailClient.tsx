@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
 import { createClient } from "@/lib/supabase/client";
+import { ParticipationChangeSheet } from "./ParticipationChangeSheet";
 import { ParticipationSelector } from "./ParticipationSelector";
 import { TaskProgress } from "./TaskProgress";
 import {
@@ -56,6 +57,8 @@ export function TaskDetailClient({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [shareState, setShareState] = useState<"idle" | "copied" | "shared">("idle");
+  const [leaveTarget, setLeaveTarget] = useState<Exclude<ParticipationStatus, null> | null>(null);
+  const [leaveReason, setLeaveReason] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -99,7 +102,10 @@ export function TaskDetailClient({
     };
   }, [taskId]);
 
-  async function participate(status: Exclude<ParticipationStatus, null>) {
+  async function participate(
+    status: Exclude<ParticipationStatus, null>,
+    reason?: string,
+  ) {
     if (task.myStatus === status) return;
     const previousTask = task;
     const previousParticipants = participants;
@@ -129,7 +135,7 @@ export function TaskDetailClient({
       const response = await fetch(`/api/tasks/${task.id}/participation`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason }),
       });
       const data = (await response.json()) as { joinedCount?: number; error?: string };
       if (!response.ok) throw new Error(data.error);
@@ -143,7 +149,22 @@ export function TaskDetailClient({
       setError(participateError instanceof Error ? participateError.message : "변경하지 못했어요.");
     } finally {
       setBusy(false);
+      setLeaveTarget(null);
+      setLeaveReason("");
     }
+  }
+
+  function chooseParticipation(status: Exclude<ParticipationStatus, null>) {
+    if (task.myStatus === "JOINED" && status !== "JOINED") {
+      setLeaveTarget(status);
+      return;
+    }
+    void participate(status);
+  }
+
+  function closeLeaveSheet() {
+    setLeaveTarget(null);
+    setLeaveReason("");
   }
 
   async function toggleWatch() {
@@ -285,7 +306,11 @@ export function TaskDetailClient({
                 <strong>이 모임에 참여할까요?</strong>
                 <span>선택하면 바로 반영됩니다</span>
               </div>
-              <ParticipationSelector value={task.myStatus} onChange={participate} disabled={busy} />
+              <ParticipationSelector
+                value={task.myStatus}
+                onChange={chooseParticipation}
+                disabled={busy}
+              />
             </div>
           )}
           {task.description && <p className="detail-description">{task.description}</p>}
@@ -330,6 +355,15 @@ export function TaskDetailClient({
           </section>
         )}
       </div>
+      {leaveTarget && (
+        <ParticipationChangeSheet
+          reason={leaveReason}
+          onReasonChange={setLeaveReason}
+          onCancel={closeLeaveSheet}
+          onConfirm={() => participate(leaveTarget, leaveReason)}
+          busy={busy}
+        />
+      )}
     </AppChrome>
   );
 }
