@@ -1,3 +1,5 @@
+import { KOREA_TIME_ZONE, koreaRelativeDay } from "@/lib/korea-time";
+
 export type ParticipationStatus = "JOINED" | "MAYBE" | "DECLINED" | null;
 
 export type TaskSummary = {
@@ -53,26 +55,19 @@ export function getMeetStatus(task: TaskSummary) {
 
 export function formatMeetDate(value: string) {
   const date = new Date(value);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-  const day = sameDay(date, today)
-    ? "오늘"
-    : sameDay(date, tomorrow)
-      ? "내일"
-      : new Intl.DateTimeFormat("ko-KR", {
-          month: "short",
-          day: "numeric",
-          weekday: "short",
-        }).format(date);
+  const day =
+    koreaRelativeDay(date) ??
+    new Intl.DateTimeFormat("ko-KR", {
+      timeZone: KOREA_TIME_ZONE,
+      month: "short",
+      day: "numeric",
+      weekday: "short",
+    }).format(date);
   const time = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: KOREA_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).format(date);
   return { day, time };
 }

@@ -24,7 +24,7 @@ export function TaskCard({
   const date = formatMeetDate(task.startAt);
 
   return (
-    <article className={`task-card${task.status === "COMPLETED" ? " completed" : ""}`}>
+    <article className={`task-card${task.status !== "OPEN" ? " completed" : ""}`}>
       <div className="task-card-topline">
         <span className="category-pill">
           <span aria-hidden="true">{category.emoji}</span> {category.label}
@@ -45,12 +45,21 @@ export function TaskCard({
         <TaskProgress task={task} />
       </Link>
       {task.status === "OPEN" && (
-        <ParticipationSelector
-          compact
-          value={task.myStatus}
-          onChange={(status) => onParticipation(task, status)}
-          disabled={busy}
-        />
+        <div className="card-response">
+          <div className="card-response-heading">
+            <strong>참여 여부</strong>
+            <span>{task.myStatus ? "언제든 바꿀 수 있어요" : "바로 알려주세요"}</span>
+          </div>
+          <ParticipationSelector
+            compact
+            value={task.myStatus}
+            onChange={(status) => onParticipation(task, status)}
+            disabled={busy}
+          />
+        </div>
+      )}
+      {task.status !== "OPEN" && (
+        <p className="closed-response">종료된 모임 · 참여 응답 마감</p>
       )}
     </article>
   );

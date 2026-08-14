@@ -475,8 +475,51 @@ a {
   box-shadow: 0 3px 10px rgba(32, 45, 37, 0.08);
 }
 
+.participation-selector:not(.has-response) button.joined,
+.participation-selector button.joined.selected {
+  color: white;
+  background: var(--primary);
+}
+
 .participation-selector button:disabled {
   opacity: 0.55;
+}
+
+.card-response {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.card-response-heading,
+.hero-response-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-response-heading strong,
+.hero-response-heading strong {
+  font-size: 13px;
+}
+
+.card-response-heading span,
+.hero-response-heading span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.card-response .participation-selector {
+  margin-top: 8px;
+}
+
+.closed-response {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .inline-alert {
@@ -1042,6 +1085,22 @@ a {
 
 .detail-hero-card .progress-wrap { margin-top: 25px; }
 
+.hero-response {
+  margin: 18px -4px 0;
+  padding: 15px;
+  border: 1px solid #cbdccf;
+  border-radius: 14px;
+  background: #f3f8f4;
+}
+
+.hero-response-heading strong {
+  font-size: 15px;
+}
+
+.hero-response .participation-selector {
+  margin-top: 11px;
+}
+
 .detail-facts {
   margin-top: 18px;
   padding-top: 17px;
@@ -1491,6 +1550,10 @@ body {
   box-shadow: none;
 }
 
+.participation-selector button.joined.selected {
+  background: var(--primary);
+}
+
 .primary-button,
 .secondary-button {
   min-height: 49px;
@@ -1718,6 +1781,10 @@ body {
 .detail-description {
   border-radius: 8px;
   background: #f5f5f2;
+}
+
+.hero-response {
+  border-radius: 10px;
 }
 
 .detail-facts {

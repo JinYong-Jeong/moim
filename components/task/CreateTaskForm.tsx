@@ -3,14 +3,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppChrome } from "@/components/common/AppChrome";
+import { toKoreaDateTimeInput } from "@/lib/korea-time";
 import { categoryMap, type TaskSummary } from "./types";
 
 const categories = ["GAME", "FOOD", "SPORT", "STUDY", "DRINK", "ETC"];
-
-function toInputDate(date: Date) {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
 
 export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
   const router = useRouter();
@@ -24,15 +20,15 @@ export function CreateTaskForm({ initial }: { initial?: TaskSummary }) {
       title: initial?.title ?? "",
       description: initial?.description ?? "",
       category: initial?.category ?? "GAME",
-      startAt: toInputDate(start),
-      deadlineAt: toInputDate(deadline),
+      startAt: toKoreaDateTimeInput(start),
+      deadlineAt: toKoreaDateTimeInput(deadline),
       minParticipants: initial?.minParticipants ?? 2,
       maxParticipants: initial?.maxParticipants ?? 4,
       joinUrl: initial?.joinUrl ?? "",
     };
   }, [initial]);
   const draftKey = useMemo(
-    () => `moim:task-draft:v1:${initial?.id ?? "new"}`,
+    () => `moim:task-draft:v2:${initial?.id ?? "new"}`,
     [initial?.id],
   );
 

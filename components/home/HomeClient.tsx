@@ -8,6 +8,7 @@ import type {
   ParticipationStatus,
   TaskSummary,
 } from "@/components/task/types";
+import { koreaRelativeDay } from "@/lib/korea-time";
 
 type Profile = { id: string; nickname: string };
 type LeaveRequest = {
@@ -19,15 +20,7 @@ const leaveReasons = ["일정이 생겼어요", "다른 약속이 있어요", "�
 
 function groupKey(task: TaskSummary) {
   if (task.status === "COMPLETED") return "완료";
-  const date = new Date(task.startAt);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const key = (value: Date) =>
-    `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
-  if (key(date) === key(today)) return "오늘";
-  if (key(date) === key(tomorrow)) return "내일";
-  return "예정";
+  return koreaRelativeDay(new Date(task.startAt)) ?? "예정";
 }
 
 export function HomeClient({

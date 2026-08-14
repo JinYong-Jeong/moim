@@ -165,7 +165,10 @@ export function TaskDetailClient({
   }
 
   async function changeTaskState(action: "CANCELLED" | "COMPLETED") {
-    const message = action === "CANCELLED" ? "이 모임을 취소할까요?" : "모임을 완료할까요?";
+    const message =
+      action === "CANCELLED"
+        ? "이 모임을 취소할까요? 목록에서 사라지고 참여할 수 없게 됩니다."
+        : "이 모임을 종료할까요? 종료하면 더 이상 참여 응답을 받을 수 없습니다.";
     if (!window.confirm(message)) return;
     setBusy(true);
     try {
@@ -202,6 +205,15 @@ export function TaskDetailClient({
           </div>
           <h1>{task.title}</h1>
           <p className="detail-creator">{task.creatorNickname}님이 열었어요</p>
+          {task.status === "OPEN" && (
+            <div className="hero-response">
+              <div className="hero-response-heading">
+                <strong>이 모임에 참여할까요?</strong>
+                <span>선택하면 바로 반영됩니다</span>
+              </div>
+              <ParticipationSelector value={task.myStatus} onChange={participate} disabled={busy} />
+            </div>
+          )}
           {task.description && <p className="detail-description">{task.description}</p>}
           <TaskProgress task={task} />
           <div className="detail-facts">
@@ -214,13 +226,6 @@ export function TaskDetailClient({
         </section>
 
         {error && <div className="inline-alert" role="alert">{error}</div>}
-
-        {task.status === "OPEN" && (
-          <section className="detail-section response-section">
-            <div className="section-heading"><h2>나는 갈까요?</h2></div>
-            <ParticipationSelector value={task.myStatus} onChange={participate} disabled={busy} />
-          </section>
-        )}
 
         <section className="detail-section">
           <div className="section-heading"><h2>친구들</h2><span>{participants.length}</span></div>
@@ -245,9 +250,9 @@ export function TaskDetailClient({
 
         {isCreator && task.status === "OPEN" && (
           <section className="creator-actions">
-            <Link className="secondary-button" href={`/tasks/${task.id}/edit`}>수정</Link>
-            <button type="button" onClick={() => changeTaskState("COMPLETED")} disabled={busy}>완료</button>
-            <button type="button" className="danger-link" onClick={() => changeTaskState("CANCELLED")} disabled={busy}>취소</button>
+            <Link className="secondary-button" href={`/tasks/${task.id}/edit`}>모임 수정</Link>
+            <button type="button" onClick={() => changeTaskState("COMPLETED")} disabled={busy}>모임 종료</button>
+            <button type="button" className="danger-link" onClick={() => changeTaskState("CANCELLED")} disabled={busy}>모임 취소</button>
           </section>
         )}
       </div>
