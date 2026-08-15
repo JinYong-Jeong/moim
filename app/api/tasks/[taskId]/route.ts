@@ -30,11 +30,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const payload = (await request.json()) as Record<string, unknown>;
     const supabase = await createClient();
-    const { data: current } = await supabase
+    const { data: current, error: currentError } = await supabase
       .from("tasks")
-      .select("creator_id")
+      .select("creator_id, start_at")
       .eq("id", taskId)
       .maybeSingle();
+    if (currentError) {
+      return databaseError(currentError, "모임을 불러오지 못했어요.");
+    }
     if (!current) throw new Error("모임을 찾을 수 없어요.");
     if (current.creator_id !== user.id) {
       return Response.json(
@@ -54,7 +57,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       return Response.json({ ok: true });
     }
 
-    const task = parseTaskPayload(payload);
+    const task = parseTaskPayload(payload, {
+      allowPastStart: new Date(current.start_at).getTime() <= Date.now(),
+    });
     const { error } = await supabase
       .from("tasks")
       .update({
@@ -75,4 +80,38 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     return apiError(error);
   }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const user = await getAppUser();
+  if (!user) return unauthorized();
+  const { taskId } = await context.params;
+  const supabase = await createClient();
+
+  const { data: current, error: currentError } = await supabase
+    .from("tasks")
+    .select("creator_id")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (currentError) {
+    return databaseError(currentError, "모임을 불러오지 못했어요.");
+  }
+  if (!current) {
+    return Response.json({ error: "모임을 찾을 수 없어요." }, { status: 404 });
+  }
+  if (current.creator_id !== user.id) {
+    return Response.json(
+      { error: "모임을 만든 사람만 삭제할 수 있어요." },
+      { status: 403 },
+    );
+  }
+
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", taskId)
+    .eq("creator_id", user.id);
+  if (error) return databaseError(error, "모임을 삭제하지 못했어요.");
+
+  return Response.json({ ok: true });
 }

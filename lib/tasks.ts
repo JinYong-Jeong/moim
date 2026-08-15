@@ -24,7 +24,10 @@ export function isParticipationStatus(
   return PARTICIPATION_STATUSES.includes(value as ParticipationStatus);
 }
 
-export function parseTaskPayload(payload: Record<string, unknown>) {
+export function parseTaskPayload(
+  payload: Record<string, unknown>,
+  { allowPastStart = false }: { allowPastStart?: boolean } = {},
+) {
   const title = String(payload.title ?? "").trim();
   const description = String(payload.description ?? "").trim();
   const category = payload.category;
@@ -52,7 +55,10 @@ export function parseTaskPayload(payload: Record<string, unknown>) {
   }
 
   const startDate = parseKoreaDateTimeInput(startAt);
-  if (Number.isNaN(startDate.getTime()) || startDate.getTime() <= Date.now()) {
+  if (
+    Number.isNaN(startDate.getTime()) ||
+    (!allowPastStart && startDate.getTime() <= Date.now())
+  ) {
     throw new Error("시작 시간은 현재보다 뒤여야 해요.");
   }
 

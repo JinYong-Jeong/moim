@@ -230,6 +230,30 @@ export function TaskDetailClient({
     }
   }
 
+  async function deleteTask() {
+    const confirmed = window.confirm(
+      "이 모임을 완전히 삭제할까요? 참여 기록과 알림도 함께 삭제되며 되돌릴 수 없습니다.",
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(data.error);
+      router.replace("/");
+      router.refresh();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : "삭제하지 못했어요.",
+      );
+      setBusy(false);
+    }
+  }
+
   async function shareTask() {
     const shareUrl = `${window.location.origin}/tasks/${task.id}`;
     const date = formatMeetDate(task.startAt);
@@ -347,11 +371,16 @@ export function TaskDetailClient({
           <span><strong>{task.watching ? "알림 켜짐" : "이 모임 알림 켜기"}</strong><small>모집 성공·마감 소식을 놓치지 마세요</small></span>
         </button>
 
-        {isCreator && task.status === "OPEN" && (
+        {isCreator && (
           <section className="creator-actions">
             <Link className="secondary-button" href={`/tasks/${task.id}/edit`}>모임 수정</Link>
-            <button type="button" onClick={() => changeTaskState("COMPLETED")} disabled={busy}>모임 종료</button>
-            <button type="button" className="danger-link" onClick={() => changeTaskState("CANCELLED")} disabled={busy}>모임 취소</button>
+            {task.status === "OPEN" && (
+              <>
+                <button type="button" onClick={() => changeTaskState("COMPLETED")} disabled={busy}>모임 종료</button>
+                <button type="button" onClick={() => changeTaskState("CANCELLED")} disabled={busy}>모임 취소</button>
+              </>
+            )}
+            <button type="button" className="danger-link" onClick={deleteTask} disabled={busy}>모임 삭제</button>
           </section>
         )}
       </div>
