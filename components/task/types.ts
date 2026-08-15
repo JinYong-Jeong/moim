@@ -36,6 +36,8 @@ export const categoryMap: Record<string, { emoji: string; label: string }> = {
 };
 
 export function getMeetStatus(task: TaskSummary, past = false) {
+  const spotsLeft = Math.max(0, task.maxParticipants - task.joinedCount);
+
   if (task.status === "COMPLETED") {
     return { key: "COMPLETED", label: "완료", message: "즐거운 모임이었어요" };
   }
@@ -46,13 +48,17 @@ export function getMeetStatus(task: TaskSummary, past = false) {
     return { key: "FULL", label: "FULL", message: "모집 완료!" };
   }
   if (task.joinedCount >= task.minParticipants) {
-    return { key: "READY", label: "성공", message: "모임 확정!" };
+    return {
+      key: "READY",
+      label: "성공",
+      message: `모임 확정 · ${spotsLeft}자리 남음`,
+    };
   }
-  const remaining = task.minParticipants - task.joinedCount;
+  const remainingToStart = task.minParticipants - task.joinedCount;
   return {
     key: "WAITING",
     label: "모집 중",
-    message: `${remaining}명만 더 오면 시작해요`,
+    message: `시작까지 ${remainingToStart}명 · ${spotsLeft}자리 남음`,
   };
 }
 
