@@ -1,3 +1,5 @@
+import { parseKoreaDateTimeInput } from "@/lib/korea-time";
+
 export const TASK_CATEGORIES = [
   "GAME",
   "FOOD",
@@ -22,7 +24,10 @@ export function isParticipationStatus(
   return PARTICIPATION_STATUSES.includes(value as ParticipationStatus);
 }
 
-export function parseTaskPayload(payload: Record<string, unknown>) {
+export function parseTaskPayload(
+  payload: Record<string, unknown>,
+  { allowPastStart = false }: { allowPastStart?: boolean } = {},
+) {
   const title = String(payload.title ?? "").trim();
   const description = String(payload.description ?? "").trim();
   const category = payload.category;
@@ -49,14 +54,17 @@ export function parseTaskPayload(payload: Record<string, unknown>) {
     throw new Error("최대 인원을 다시 확인해 주세요.");
   }
 
-  const startDate = new Date(startAt);
-  if (Number.isNaN(startDate.getTime()) || startDate.getTime() <= Date.now()) {
+  const startDate = parseKoreaDateTimeInput(startAt);
+  if (
+    Number.isNaN(startDate.getTime()) ||
+    (!allowPastStart && startDate.getTime() <= Date.now())
+  ) {
     throw new Error("시작 시간은 현재보다 뒤여야 해요.");
   }
 
   let deadlineDate: Date | null = null;
   if (deadlineAt) {
-    deadlineDate = new Date(deadlineAt);
+    deadlineDate = parseKoreaDateTimeInput(deadlineAt);
     if (
       Number.isNaN(deadlineDate.getTime()) ||
       deadlineDate.getTime() > startDate.getTime()

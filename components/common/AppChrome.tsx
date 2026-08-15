@@ -9,12 +9,14 @@ export function AppChrome({
   title,
   eyebrow,
   backHref,
+  action,
   hideNav = false,
 }: {
   children: ReactNode;
   title?: string;
   eyebrow?: string;
   backHref?: string;
+  action?: ReactNode;
   hideNav?: boolean;
 }) {
   const pathname = usePathname();
@@ -29,7 +31,7 @@ export function AppChrome({
             </Link>
           ) : (
             <Link href="/" className="brand-mark" aria-label="모임 홈">
-              모임<span>.</span>
+              모임
             </Link>
           )}
           {title && (
@@ -38,11 +40,13 @@ export function AppChrome({
               <strong>{title}</strong>
             </div>
           )}
-          {!backHref && (
+          {action ? (
+            <div className="header-action">{action}</div>
+          ) : !backHref ? (
             <Link href="/settings" className="profile-dot" aria-label="내 설정">
-              나
+              내
             </Link>
-          )}
+          ) : null}
         </div>
       </header>
       <main className={hideNav ? "app-main no-nav" : "app-main"}>{children}</main>

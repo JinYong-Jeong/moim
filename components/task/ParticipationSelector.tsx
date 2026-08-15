@@ -1,9 +1,9 @@
 import type { ParticipationStatus } from "./types";
 
 const options = [
-  { value: "JOINED", label: "참여", icon: "✓" },
-  { value: "MAYBE", label: "고민중", icon: "?" },
-  { value: "DECLINED", label: "불참", icon: "×" },
+  { value: "JOINED", label: "참여하기" },
+  { value: "MAYBE", label: "고민중" },
+  { value: "DECLINED", label: "불참" },
 ] as const;
 
 export function ParticipationSelector({
@@ -18,17 +18,20 @@ export function ParticipationSelector({
   compact?: boolean;
 }) {
   return (
-    <div className={`participation-selector${compact ? " compact" : ""}`}>
+    <div
+      className={`participation-selector${compact ? " compact" : ""}${value ? " has-response" : ""}`}
+      role="group"
+      aria-label="참여 여부"
+    >
       {options.map((option) => (
         <button
           type="button"
-          className={value === option.value ? "selected" : ""}
+          className={`${option.value.toLowerCase()}${value === option.value ? " selected" : ""}`}
           aria-pressed={value === option.value}
           disabled={disabled}
           onClick={() => onChange(option.value)}
           key={option.value}
         >
-          <span aria-hidden="true">{option.icon}</span>
           {option.label}
         </button>
       ))}

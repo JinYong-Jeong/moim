@@ -7,5 +7,5 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const user = await getAppUser();
   if (!user) redirect("/login");
-  return <SettingsClient email={user.email} displayName={user.displayName} />;
+  return <SettingsClient displayName={user.displayName} />;
 }

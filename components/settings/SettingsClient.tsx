@@ -3,19 +3,10 @@
 import { useEffect, useState } from "react";
 import { AppChrome } from "@/components/common/AppChrome";
 
-type Profile = { nickname: string; email: string };
-
-export function SettingsClient({ email, displayName }: { email: string; displayName: string }) {
-  const [profile, setProfile] = useState<Profile>({ nickname: displayName, email });
+export function SettingsClient({ displayName }: { displayName: string }) {
   const [permission, setPermission] = useState("확인 전");
 
   useEffect(() => {
-    fetch("/api/me")
-      .then(async (response) => (await response.json()) as { profile?: Profile })
-      .then((data) => {
-        if (data.profile) setProfile(data.profile);
-      })
-      .catch(() => undefined);
     Promise.resolve().then(() => {
       if ("Notification" in window) setPermission(Notification.permission);
     });
@@ -25,10 +16,10 @@ export function SettingsClient({ email, displayName }: { email: string; displayN
     <AppChrome>
       <div className="settings-page">
         <section className="settings-profile">
-          <div>{profile.nickname.slice(0, 1)}</div>
+          <div>{displayName.slice(0, 1)}</div>
           <span>내 프로필</span>
-          <h1>{profile.nickname}</h1>
-          <p>{profile.email}</p>
+          <h1>{displayName}</h1>
+          <p>이름과 4자리 PIN으로 로그인</p>
         </section>
         <section className="settings-list">
           <div>
