@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { getAppUser, unauthorized } from "@/lib/auth";
 import { apiError, parseTaskPayload } from "@/lib/tasks";
 import { databaseError } from "@/lib/task-data";
@@ -106,12 +107,21 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("tasks")
     .delete()
     .eq("id", taskId)
-    .eq("creator_id", user.id);
+    .eq("creator_id", user.id)
+    .select("id")
+    .maybeSingle();
   if (error) return databaseError(error, "모임을 삭제하지 못했어요.");
+  if (!deleted) {
+    return Response.json(
+      { error: "이미 삭제되었거나 삭제할 수 없는 모임이에요." },
+      { status: 404 },
+    );
+  }
 
-  return Response.json({ ok: true });
+  revalidatePath("/");
+  return Response.json({ ok: true, id: deleted.id });
 }

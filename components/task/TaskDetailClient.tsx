@@ -244,8 +244,7 @@ export function TaskDetailClient({
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error);
-      router.replace("/");
-      router.refresh();
+      window.location.replace("/");
     } catch (deleteError) {
       setError(
         deleteError instanceof Error ? deleteError.message : "삭제하지 못했어요.",
